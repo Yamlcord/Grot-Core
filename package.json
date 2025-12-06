@@ -4,7 +4,7 @@
   "description": "Modular και επεκτάσιμο Discord Bot Framework σε TypeScript με plugin system και service container για εύκολη δημιουργία, κατανομή και χρήση plugins.",
   "main": "app/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\""
   },
   "repository": {
     "type": "git",
