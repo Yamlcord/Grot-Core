@@ -1,0 +1,25 @@
+{
+  "name": "grot-core",
+  "version": "0.0.1",
+  "description": "Modular και επεκτάσιμο Discord Bot Framework σε TypeScript με plugin system και service container για εύκολη δημιουργία, κατανομή και χρήση plugins.",
+  "main": "app/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yamlcord/Grot-Core.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Yamlcord/Grot-Core/issues"
+  },
+  "homepage": "https://github.com/Yamlcord/Grot-Core#readme",
+  "dependencies": {
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.2.3"
+  }
+}
