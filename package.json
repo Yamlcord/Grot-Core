@@ -1,6 +1,6 @@
 {
   "name": "grot-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Modular και επεκτάσιμο Discord Bot Framework σε TypeScript με plugin system και service container για εύκολη δημιουργία, κατανομή και χρήση plugins.",
   "main": "app/index.ts",
   "scripts": {
