@@ -1,5 +1,11 @@
 import { Client, GatewayIntentBits } from "discord.js";
 
+export enum MessageTypes {
+  PlainText = 0,
+  Embed = 1,
+  ComponentsV2 = 2,
+}
+
 export interface Plugin {
   name: string;
   dependencies?: Array<string>;
