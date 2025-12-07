@@ -19,7 +19,6 @@
   },
   "homepage": "https://github.com/Yamlcord/Grot-Core#readme",
   "dependencies": {
-    "discord.js": "^14.25.1",
-    "dotenv": "^17.2.3"
+    "discord.js": "^14.25.1"
   }
 }
