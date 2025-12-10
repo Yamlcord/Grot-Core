@@ -20,5 +20,9 @@
   "homepage": "https://github.com/Yamlcord/Grot-Core#readme",
   "dependencies": {
     "discord.js": "^14.25.1"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.3",
+    "tsx": "^4.21.0"
   }
 }
