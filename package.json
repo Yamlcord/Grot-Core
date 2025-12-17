@@ -19,10 +19,13 @@
   },
   "homepage": "https://github.com/Yamlcord/Grot-Core#readme",
   "dependencies": {
-    "discord.js": "^14.25.1"
+    "@libsql/client": "^0.15.15",
+    "discord.js": "^14.25.1",
+    "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.8",
     "tsx": "^4.21.0"
   }
 }
