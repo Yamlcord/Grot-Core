@@ -9,6 +9,12 @@ import {
   Routes,
 } from "discord.js";
 
+import { ESMFileMigrationProvider } from "./providers/ESMFileMigrationProvider";
+
+import SQLite from "better-sqlite3";
+import { Kysely, SqliteDialect } from "kysely";
+import { Migrator } from "kysely";
+
 export enum MessageTypes {
   PlainText = 0,
   Embed = 1,
@@ -19,6 +25,7 @@ export interface Plugin {
   name: string;
   dependencies?: Array<string>;
   requiredIntents?: GatewayIntentBits[];
+  migrationsPath: string;
   initialize(core: GrotCore): void;
 }
 
@@ -47,10 +54,15 @@ export type ActionData = SlashCommandActionData | PrefixCommandActionData;
 // | SelectMenuActionData
 // | ModalActionData;
 
+export enum DatabaseType {
+  SQLITE = 1,
+}
+
 export class GrotCore {
   private plugins: Array<Plugin>;
   private client: Client;
   private intents: Set<GatewayIntentBits>;
+  private database: Kysely<any>;
 
   private actionRegistry: {
     commands: {
@@ -71,6 +83,21 @@ export class GrotCore {
       },
       buttons: new Collection<string, ButtonActionData>(),
     };
+  }
+
+  public useDatabase(database: DatabaseType = DatabaseType.SQLITE) {
+    switch (database) {
+      case DatabaseType.SQLITE:
+        this.database = new Kysely<any>({
+          dialect: new SqliteDialect({
+            database: new SQLite("default.db"),
+          }),
+        });
+    }
+  }
+
+  public getDatabase<T>(): Kysely<T> {
+    return this.database as Kysely<T>;
   }
 
   public registerInteraction<T extends ActionData>(interaction: T) {
@@ -134,18 +161,27 @@ export class GrotCore {
     console.log(`Successfully reloaded application (/) commands.`);
   }
 
-  public run() {
+  public async run() {
     this.client = new Client({
       intents: Array.from(this.intents),
     });
 
     console.log("Initializing plugins");
-    this.plugins.forEach((plugin) => {
+    for (const plugin of this.plugins) {
+      const migrator = new Migrator({
+        db: this.database,
+        migrationTableName: `__migrations_${plugin.name}`,
+        provider: new ESMFileMigrationProvider(plugin.migrationsPath),
+      });
+      console.log(`Running migrations for plugin: ${plugin.name}`);
+      const migrationResult = await migrator.migrateUp();
+      console.log(migrationResult);
+      console.log(`Initializing plugin: ${plugin.name}`);
       plugin.initialize(this);
-    });
+    }
 
-    console.log(`Command registration`);
-    this.deployCommands();
+    // console.log(`Command registration`);
+    // this.deployCommands();
 
     this.client.login(process.env.DISCORD_TOKEN);
   }
