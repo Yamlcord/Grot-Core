@@ -135,7 +135,7 @@ export class GrotCore {
     console.log(`Successfully reloaded ${data.length} application (/) commands.`);
   }
 
-  public run({ token, clientId, guildId }: { token: string, clientId: string, guildId: string }) {
+  public run(args?: { token?: string, clientId?: string, guildId?: string }) {
     this.client = new Client({
       intents: Array.from(this.intents),
     });
@@ -144,6 +144,14 @@ export class GrotCore {
     this.plugins.forEach((plugin) => {
       plugin.initialize(this);
     });
+
+    const clientId = args?.clientId ?? process.env.BOT_ID;
+    const guildId = args?.guildId ?? process.env.GUILD_ID;
+    const token = args?.token ?? process.env.DISCORD_TOKEN;
+
+    if (!clientId || !guildId || !token) {
+      throw Error(`[ERROR] Missing environment variables (token, clientId, guildId). Please set them in .env or pass them as arguments`)
+    }
 
     this.deployCommands({ clientId, guildId });
 
