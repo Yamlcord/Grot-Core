@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits, Events } from "discord.js";
 import { Kysely } from "kysely";
-import { ActionTypes, RunOptions, Plugin, ActionData} from "./types";
+import { ActionTypes, RunOptions, Plugin, ActionData, GrotOptions} from "./types";
 import { ActionRegistry } from "./ActionRegistry";
 import { Database } from "./Database";
 import { deploySlashCommands } from "./scripts/DeployCommands";
