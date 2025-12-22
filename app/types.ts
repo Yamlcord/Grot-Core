@@ -39,6 +39,7 @@ export type SlashCommandActionData = {
 
 export type PrefixCommandActionData = {
   type: ActionTypes.PrefixCommand;
+  name: string,
   execute: (message: Message, ...params: any[]) => Promise<void> | void;
 };
 
@@ -51,11 +52,13 @@ export type ButtonActionData = {
 
 export type SelectMenuActionData = {
   type: ActionTypes.SelectMenu;
+  name: string,
   execute: (interaction: StringSelectMenuInteraction) => Promise<void> | void;
 };
 
 export type ModalActionData = {
   type: ActionTypes.Modal;
+  name: string,
   execute: (interaction: ModalSubmitInteraction) => Promise<void> | void;
 };
 
@@ -74,13 +77,3 @@ export type ActionData =
   | ButtonActionData
   | SelectMenuActionData
   | ModalActionData;
-
-export type ActionRegistry = {
-  buttons: Collection<string, ButtonActionData>;
-  selects: Collection<string, SelectMenuActionData>;
-  modals: Collection<string, ModalActionData>;
-  commands: {
-    slash: Collection<string, SlashCommandActionData>;
-    prefix: Collection<string, PrefixCommandActionData>;
-  };
-};

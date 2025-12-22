@@ -13,19 +13,14 @@ import { ESMFileMigrationProvider } from "./providers/ESMFileMigrationProvider";
 import SQLite from "better-sqlite3";
 import { Kysely, SqliteDialect } from "kysely";
 import { Migrator } from "kysely";
-import { 
-  ActionRegistry, 
-  SlashCommandActionData, 
-  PrefixCommandActionData, 
-  ButtonActionData, 
-  SelectMenuActionData, 
-  ModalActionData, 
-  ActionData, 
-  ActionTypes, 
-  ActionTypeMap, 
-  RunOptions, 
-  Plugin 
+import {
+  ActionTypes,
+  ActionTypeMap,
+  RunOptions,
+  Plugin,
+  ActionData
 } from "./types";
+import { ActionRegistry } from "./ActionRegistry";
 
 export type GrotOptions = {
   intents: GatewayIntentBits[];
@@ -47,15 +42,7 @@ export class GrotCore {
     this.plugins = new Array<Plugin>();
     this.intents = new Set<GatewayIntentBits>(options?.intents);
 
-    this.actionRegistry = {
-      commands: {
-        slash: new Collection<string, SlashCommandActionData>(),
-        prefix: new Collection<string, PrefixCommandActionData>(),
-      },
-      buttons: new Collection<string, ButtonActionData>(),
-      selects: new Collection<string, SelectMenuActionData>(),
-      modals: new Collection<string, ModalActionData>(),
-    };
+    this.actionRegistry = new ActionRegistry();
   }
 
   public useDatabase(database: DatabaseType = DatabaseType.SQLITE) {
@@ -73,27 +60,8 @@ export class GrotCore {
     return this.database as Kysely<T>;
   }
 
-  public registerInteraction<T extends ActionData>(interaction: T) {
-    switch (interaction.type) {
-      case ActionTypes.SlashCommand:
-        this.actionRegistry.commands.slash.set(
-          interaction.data.name,
-          interaction,
-        );
-        break;
-      case ActionTypes.PrefixCommand:
-        console.log("You are trying to register slash command");
-        break;
-      case ActionTypes.Button:
-        this.actionRegistry.buttons.set(interaction.name, interaction);
-        break;
-      case ActionTypes.SelectMenu:
-        console.log("You are trying to register SelectMenu");
-        break;
-      case ActionTypes.Modal:
-        console.log("You are trying to register Modal");
-        break;
-    }
+  public registerInteraction<T extends ActionData>(data: T) {
+    this.actionRegistry.set(data)
   }
 
   public registerPlugin(plugin: Plugin): Error | void | undefined {
@@ -128,7 +96,7 @@ export class GrotCore {
     clientId: string;
     guildId: string;
   }) {
-    const slashRegistry = this.actionRegistry.commands.slash;
+    const slashRegistry = this.actionRegistry.getSlashCommands();
     const slashCommands = Array.from(slashRegistry.values()).map((slash) =>
       slash.data.toJSON(),
     );
@@ -148,45 +116,26 @@ export class GrotCore {
     );
   }
 
-  private get registryMap(): {
-    [K in keyof ActionTypeMap]: Collection<string, ActionTypeMap[K]>;
-  } {
-    return {
-      [ActionTypes.Button]: this.actionRegistry.buttons,
-      [ActionTypes.SlashCommand]: this.actionRegistry.commands.slash,
-      [ActionTypes.PrefixCommand]: this.actionRegistry.commands.prefix,
-      [ActionTypes.SelectMenu]: this.actionRegistry.selects,
-      [ActionTypes.Modal]: this.actionRegistry.modals,
-    };
-  }
-
-  getAction<T extends ActionTypes>(
-    type: T,
-    name: string,
-  ): ActionTypeMap[T] | undefined {
-    return this.registryMap[type]?.get(name);
-  }
-
   public setupInteractionHandler() {
     this.client?.on(Events.InteractionCreate, async (interaction) => {
       try {
         if (interaction.isButton()) {
           const [name] = interaction.customId.split("$");
-          const action = this.getAction(ActionTypes.Button, name);
+          const action = this.actionRegistry.get(ActionTypes.Button, name);
           action?.execute(interaction);
           return;
         }
 
         if (interaction.isChatInputCommand()) {
           const name = interaction.commandName;
-          const action = this.getAction(ActionTypes.SlashCommand, name);
+          const action = this.actionRegistry.get(ActionTypes.SlashCommand, name);
           action?.execute(interaction);
           return;
         }
 
         if (interaction.isStringSelectMenu()) {
           const [name] = interaction.customId.split("$");
-          const action = this.getAction(ActionTypes.SelectMenu, name);
+          const action = this.actionRegistry.get(ActionTypes.SelectMenu, name);
           action?.execute(interaction);
           return;
         }
@@ -204,7 +153,7 @@ export class GrotCore {
     console.log("Initializing plugins");
     for (const plugin of this.plugins) {
 
-      if(this.database) {
+      if (this.database) {
         const migrator = new Migrator({
           db: this.database,
           migrationTableName: `__migrations_${plugin.name}`,
@@ -214,7 +163,7 @@ export class GrotCore {
         console.log(`Running migrations for plugin: ${plugin.name}`);
         console.log(migrationResult);
       }
-      
+
       console.log(`Initializing plugin: ${plugin.name}`);
       plugin.initialize(this);
     }
