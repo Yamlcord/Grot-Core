@@ -21,6 +21,7 @@ import {
   ActionData
 } from "./types";
 import { ActionRegistry } from "./ActionRegistry";
+import { Database } from "./Database";
 
 export type GrotOptions = {
   intents: GatewayIntentBits[];
@@ -34,30 +35,23 @@ export class GrotCore {
   private plugins: Array<Plugin>;
   private client: Client | undefined;
   private intents: Set<GatewayIntentBits>;
-  private database: Kysely<any> | undefined;
+  private database: Database;
 
   private actionRegistry: ActionRegistry;
 
   public constructor(options?: GrotOptions) {
     this.plugins = new Array<Plugin>();
     this.intents = new Set<GatewayIntentBits>(options?.intents);
-
+    this.database = new Database();
     this.actionRegistry = new ActionRegistry();
   }
 
-  public useDatabase(database: DatabaseType = DatabaseType.SQLITE) {
-    switch (database) {
-      case DatabaseType.SQLITE:
-        this.database = new Kysely<any>({
-          dialect: new SqliteDialect({
-            database: new SQLite("default.db"),
-          }),
-        });
-    }
+  public useDatabase(databaseType: DatabaseType = DatabaseType.SQLITE) {
+    this.database.init(databaseType, process.env.DB_FILE_NAME || "default");
   }
 
   public getDatabase<T>(): Kysely<T> {
-    return this.database as Kysely<T>;
+    return this.database.getDatabase<T>();
   }
 
   public registerInteraction<T extends ActionData>(data: T) {
@@ -152,17 +146,7 @@ export class GrotCore {
 
     console.log("Initializing plugins");
     for (const plugin of this.plugins) {
-
-      if (this.database) {
-        const migrator = new Migrator({
-          db: this.database,
-          migrationTableName: `__migrations_${plugin.name}`,
-          provider: new ESMFileMigrationProvider(plugin.migrationsPath),
-        });
-        const migrationResult = await migrator.migrateUp();
-        console.log(`Running migrations for plugin: ${plugin.name}`);
-        console.log(migrationResult);
-      }
+      this.database.migrate(plugin.name, plugin.migrationsPath)
 
       console.log(`Initializing plugin: ${plugin.name}`);
       plugin.initialize(this);
