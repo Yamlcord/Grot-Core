@@ -7,6 +7,8 @@ import {
   SlashCommandBuilder,
   REST,
   Routes,
+  ButtonBuilder,
+  ButtonInteraction,
 } from "discord.js";
 
 export enum MessageTypes {
@@ -23,8 +25,11 @@ export interface Plugin {
 }
 
 export enum ActionTypes {
-  SlashCommand = 0,
-  PrefixCommand = 1,
+  SlashCommand = "slash",
+  PrefixCommand = "prefix",
+  Button = "button",
+  SelectMenu = "selectMenu",
+  Modal = "modal",
 }
 
 export type SlashCommandActionData = {
@@ -38,27 +43,50 @@ export type PrefixCommandActionData = {
   execute: (message: Message, ...params: any[]) => Promise<void> | void;
 };
 
-export type ButtonActionData = {};
-export type SelectMenuActionData = {};
-export type ModalActionData = {};
+export type ButtonActionData = {
+  type: ActionTypes.Button;
+  name: string;
+  view: (buttonBuilder: ButtonBuilder) => ButtonBuilder;
+  execute: (interaction: ButtonInteraction) => Promise<void> | void;
+};
 
-export type ActionData = SlashCommandActionData | PrefixCommandActionData;
-// | ButtonActionData
-// | SelectMenuActionData
-// | ModalActionData;
+export type SelectMenuActionData = {
+  type: ActionTypes.SelectMenu;
+};
+
+export type ModalActionData = {
+  type: ActionTypes.Modal;
+};
+
+type ActionTypeMap = {
+  [ActionTypes.SlashCommand]: SlashCommandActionData;
+  [ActionTypes.PrefixCommand]: PrefixCommandActionData;
+  [ActionTypes.Button]: ButtonActionData;
+  [ActionTypes.SelectMenu]: PrefixCommandActionData;
+  [ActionTypes.Modal]: PrefixCommandActionData;
+};
+
+export type ActionData =
+  | SlashCommandActionData
+  | PrefixCommandActionData
+  | ButtonActionData
+  | SelectMenuActionData
+  | ModalActionData;
+
+type ActionRegistry = {
+  buttons: Collection<string, ButtonActionData>;
+  commands: {
+    slash: Collection<string, SlashCommandActionData>;
+    prefix: Collection<string, PrefixCommandActionData>;
+  };
+};
 
 export class GrotCore {
   private plugins: Array<Plugin>;
   private client: Client;
   private intents: Set<GatewayIntentBits>;
 
-  private actionRegistry: {
-    commands: {
-      slash: Collection<string, SlashCommandActionData>;
-      prefix: Collection<string, PrefixCommandActionData>;
-    };
-    buttons: Collection<string, ButtonActionData>;
-  };
+  private actionRegistry: ActionRegistry;
 
   public constructor() {
     this.plugins = new Array<Plugin>();
@@ -83,6 +111,15 @@ export class GrotCore {
         break;
       case ActionTypes.PrefixCommand:
         console.log("You are trying to register slash command");
+        break;
+      case ActionTypes.Button:
+        this.actionRegistry.buttons.set(interaction.name, interaction);
+        break;
+      case ActionTypes.SelectMenu:
+        console.log("You are trying to register SelectMenu");
+        break;
+      case ActionTypes.Modal:
+        console.log("You are trying to register Modal");
         break;
     }
   }
@@ -132,6 +169,25 @@ export class GrotCore {
     );
 
     console.log(`Successfully reloaded application (/) commands.`);
+  }
+
+  private get registryMap(): {
+    [K in keyof ActionTypeMap]: Collection<string, ActionTypeMap[K]>;
+  } {
+    return {
+      [ActionTypes.Button]: this.actionRegistry.buttons,
+      [ActionTypes.SlashCommand]: this.actionRegistry.commands.slash,
+      [ActionTypes.PrefixCommand]: this.actionRegistry.commands.prefix,
+      [ActionTypes.SelectMenu]: this.actionRegistry.commands.prefix,
+      [ActionTypes.Modal]: this.actionRegistry.commands.prefix,
+    };
+  }
+
+  getAction<T extends ActionTypes>(
+    type: T,
+    name: string,
+  ): ActionTypeMap[T] | undefined {
+    return this.registryMap[type]?.get(name);
   }
 
   public run() {
