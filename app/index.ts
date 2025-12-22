@@ -36,6 +36,12 @@ export enum ActionTypes {
   Modal = "modal",
 }
 
+export interface RunOptions {
+  clientId: string;
+  guildId: string;
+  token: string;
+}
+
 export type SlashCommandActionData = {
   type: ActionTypes.SlashCommand;
   data: SlashCommandBuilder;
@@ -234,7 +240,7 @@ export class GrotCore {
     });
   }
 
-  public run() {
+  public run(options?: RunOptions) {
     this.client = new Client({
       intents: Array.from(this.intents),
     });
@@ -244,9 +250,9 @@ export class GrotCore {
       plugin.initialize(this);
     });
 
-    const clientId = args?.clientId ?? process.env.BOT_ID;
-    const guildId = args?.guildId ?? process.env.GUILD_ID;
-    const token = args?.token ?? process.env.DISCORD_TOKEN;
+    const clientId = options?.clientId ?? process.env.BOT_ID;
+    const guildId = options?.guildId ?? process.env.GUILD_ID;
+    const token = options?.token ?? process.env.DISCORD_TOKEN;
 
     if (!clientId || !guildId || !token) {
       throw Error(
@@ -255,7 +261,6 @@ export class GrotCore {
     }
 
     this.deployCommands({ clientId, guildId });
-
     this.setupInteractionHandler();
 
     this.client.login(process.env.DISCORD_TOKEN);
