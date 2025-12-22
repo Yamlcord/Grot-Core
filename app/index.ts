@@ -95,9 +95,9 @@ export class GrotCore {
 
   private actionRegistry: ActionRegistry;
 
-  public constructor() {
+  public constructor({ intents }: { intents?: GatewayIntentBits[] }) {
     this.plugins = new Array<Plugin>();
-    this.intents = new Set<GatewayIntentBits>();
+    this.intents = new Set<GatewayIntentBits>(intents);
 
     this.actionRegistry = {
       commands: {
@@ -151,14 +151,14 @@ export class GrotCore {
     }
 
     this.plugins.push(plugin);
-    console.log(`Plugin loaded: ${plugin.name}`);
+    console.log(`✅ Plugin loaded: ${plugin.name}`);
   }
 
   public getClient() {
     return this.client;
   }
 
-  private async deployCommands() {
+  private async deployCommands({ clientId, guildId }: { clientId: string, guildId: string }) {
     const slashRegistry = this.actionRegistry.commands.slash;
     const slashCommands = Array.from(slashRegistry.values()).map((slash) =>
       slash.data.toJSON(),
@@ -171,13 +171,13 @@ export class GrotCore {
     const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
     const data = await rest.put(
       Routes.applicationGuildCommands(
-        process.env.BOT_ID!,
-        process.env.GUILD_ID!,
+        clientId,
+        guildId
       ),
       { body: slashCommands },
-    );
+    ) as RESTPostAPIApplicationCommandsResult[];
 
-    console.log(`Successfully reloaded application (/) commands.`);
+    console.log(`Successfully reloaded ${data.length} application (/) commands.`);
   }
 
   private get registryMap(): {
@@ -233,13 +233,20 @@ export class GrotCore {
       intents: Array.from(this.intents),
     });
 
-    console.log("Initializing plugins");
+    console.log("ℹ️ Initializing Plugins");
     this.plugins.forEach((plugin) => {
       plugin.initialize(this);
     });
 
-    console.log(`Command registration`);
-    this.deployCommands();
+    const clientId = args?.clientId ?? process.env.BOT_ID;
+    const guildId = args?.guildId ?? process.env.GUILD_ID;
+    const token = args?.token ?? process.env.DISCORD_TOKEN;
+
+    if (!clientId || !guildId || !token) {
+      throw Error(`[ERROR] Missing environment variables (token, clientId, guildId). Please set them in .env or pass them as arguments`)
+    }
+
+    this.deployCommands({ clientId, guildId });
 
     this.setupInteractionHandler();
 
