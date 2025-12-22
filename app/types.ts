@@ -37,6 +37,15 @@ export type SlashCommandActionData = {
 };
 
 
+export type GrotOptions = {
+  intents: GatewayIntentBits[];
+};
+
+export enum DatabaseType {
+  SQLITE = 1,
+}
+
+
 export type PrefixCommandActionData = {
   type: ActionTypes.PrefixCommand;
   name: string,

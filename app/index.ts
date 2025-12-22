@@ -5,13 +5,6 @@ import { ActionRegistry } from "./ActionRegistry";
 import { Database } from "./Database";
 import { deploySlashCommands } from "./scripts/DeployCommands";
 
-export type GrotOptions = {
-  intents: GatewayIntentBits[];
-};
-
-export enum DatabaseType {
-  SQLITE = 1,
-}
 
 export class GrotCore {
   private plugins: Array<Plugin>;
