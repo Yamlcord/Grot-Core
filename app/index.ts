@@ -9,6 +9,9 @@ import {
   Routes,
   ButtonBuilder,
   ButtonInteraction,
+  Events,
+  StringSelectMenuInteraction,
+  ModalSubmitInteraction,
 } from "discord.js";
 
 export enum MessageTypes {
@@ -52,18 +55,20 @@ export type ButtonActionData = {
 
 export type SelectMenuActionData = {
   type: ActionTypes.SelectMenu;
+  execute: (interaction: StringSelectMenuInteraction) => Promise<void> | void;
 };
 
 export type ModalActionData = {
   type: ActionTypes.Modal;
+  execute: (interaction: ModalSubmitInteraction) => Promise<void> | void;
 };
 
 type ActionTypeMap = {
   [ActionTypes.SlashCommand]: SlashCommandActionData;
   [ActionTypes.PrefixCommand]: PrefixCommandActionData;
   [ActionTypes.Button]: ButtonActionData;
-  [ActionTypes.SelectMenu]: PrefixCommandActionData;
-  [ActionTypes.Modal]: PrefixCommandActionData;
+  [ActionTypes.SelectMenu]: SelectMenuActionData;
+  [ActionTypes.Modal]: ModalActionData;
 };
 
 export type ActionData =
@@ -75,6 +80,8 @@ export type ActionData =
 
 type ActionRegistry = {
   buttons: Collection<string, ButtonActionData>;
+  selects: Collection<string, SelectMenuActionData>;
+  modals: Collection<string, ModalActionData>;
   commands: {
     slash: Collection<string, SlashCommandActionData>;
     prefix: Collection<string, PrefixCommandActionData>;
@@ -98,6 +105,8 @@ export class GrotCore {
         prefix: new Collection<string, PrefixCommandActionData>(),
       },
       buttons: new Collection<string, ButtonActionData>(),
+      selects: new Collection<string, SelectMenuActionData>(),
+      modals: new Collection<string, ModalActionData>(),
     };
   }
 
@@ -178,8 +187,8 @@ export class GrotCore {
       [ActionTypes.Button]: this.actionRegistry.buttons,
       [ActionTypes.SlashCommand]: this.actionRegistry.commands.slash,
       [ActionTypes.PrefixCommand]: this.actionRegistry.commands.prefix,
-      [ActionTypes.SelectMenu]: this.actionRegistry.commands.prefix,
-      [ActionTypes.Modal]: this.actionRegistry.commands.prefix,
+      [ActionTypes.SelectMenu]: this.actionRegistry.selects,
+      [ActionTypes.Modal]: this.actionRegistry.modals,
     };
   }
 
@@ -188,6 +197,35 @@ export class GrotCore {
     name: string,
   ): ActionTypeMap[T] | undefined {
     return this.registryMap[type]?.get(name);
+  }
+
+  public setupInteractionHandler() {
+    this.client.on(Events.InteractionCreate, async (interaction) => {
+      try {
+        if (interaction.isButton()) {
+          const [name] = interaction.customId.split("$");
+          const action = this.getAction(ActionTypes.Button, name);
+          action?.execute(interaction);
+          return;
+        }
+
+        if (interaction.isChatInputCommand()) {
+          const name = interaction.commandName;
+          const action = this.getAction(ActionTypes.SlashCommand, name);
+          action?.execute(interaction);
+          return;
+        }
+
+        if (interaction.isStringSelectMenu()) {
+          const [name] = interaction.customId.split("$");
+          const action = this.getAction(ActionTypes.SelectMenu, name);
+          action?.execute(interaction);
+          return;
+        }
+      } catch (error) {
+        console.error("There was an error", error);
+      }
+    });
   }
 
   public run() {
