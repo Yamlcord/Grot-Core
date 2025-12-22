@@ -84,30 +84,6 @@ export class GrotCore {
     return this.client;
   }
 
-  private async deployCommands({clientId, guildId}: {
-    clientId: string;
-    guildId: string;
-  }) {
-    const slashRegistry = this.actionRegistry.getSlashCommands();
-    const slashCommands = Array.from(slashRegistry.values()).map((slash) =>
-      slash.data.toJSON(),
-    );
-
-    console.log(
-      `Started refreshing ${slashCommands.length} application (/) commands.`,
-    );
-
-    const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
-    const data = (await rest.put(
-      Routes.applicationGuildCommands(clientId, guildId),
-      { body: slashCommands },
-    )) as RESTPostAPIApplicationCommandsResult[];
-
-    console.log(
-      `Successfully reloaded ${data.length} application (/) commands.`,
-    );
-  }
-
   public setupInteractionHandler() {
     this.client?.on(Events.InteractionCreate, async (interaction) => {
       try {
@@ -165,7 +141,7 @@ export class GrotCore {
       clientId, 
       guildId 
     });
-    
+
     this.setupInteractionHandler();
 
     this.client.login(process.env.DISCORD_TOKEN);
