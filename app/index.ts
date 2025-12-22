@@ -95,6 +95,10 @@ type ActionRegistry = {
   };
 };
 
+export type GrotOptions = {
+  intents: GatewayIntentBits[];
+};
+
 export class GrotCore {
   private plugins: Array<Plugin>;
   private client: Client;
@@ -102,9 +106,9 @@ export class GrotCore {
 
   private actionRegistry: ActionRegistry;
 
-  public constructor({ intents }: { intents?: GatewayIntentBits[] }) {
+  public constructor(options?: GrotOptions) {
     this.plugins = new Array<Plugin>();
-    this.intents = new Set<GatewayIntentBits>(intents);
+    this.intents = new Set<GatewayIntentBits>(options?.intents);
 
     this.actionRegistry = {
       commands: {
