@@ -241,6 +241,8 @@ export class GrotCore {
     console.log(`Command registration`);
     this.deployCommands();
 
+    this.setupInteractionHandler();
+
     this.client.login(process.env.DISCORD_TOKEN);
   }
 }
