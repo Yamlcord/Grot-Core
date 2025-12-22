@@ -22,6 +22,7 @@ import {
 } from "./types";
 import { ActionRegistry } from "./ActionRegistry";
 import { Database } from "./Database";
+import { deploySlashCommands } from "./scripts/DeployCommands";
 
 export type GrotOptions = {
   intents: GatewayIntentBits[];
@@ -83,10 +84,7 @@ export class GrotCore {
     return this.client;
   }
 
-  private async deployCommands({
-    clientId,
-    guildId,
-  }: {
+  private async deployCommands({clientId, guildId}: {
     clientId: string;
     guildId: string;
   }) {
@@ -162,7 +160,12 @@ export class GrotCore {
       );
     }
 
-    this.deployCommands({ clientId, guildId });
+    deploySlashCommands({
+      commands: this.actionRegistry.getSlashCommands(), 
+      clientId, 
+      guildId 
+    });
+    
     this.setupInteractionHandler();
 
     this.client.login(process.env.DISCORD_TOKEN);
