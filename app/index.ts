@@ -12,6 +12,7 @@ import {
   Events,
   StringSelectMenuInteraction,
   ModalSubmitInteraction,
+  RESTPostAPIApplicationCommandsResult,
 } from "discord.js";
 
 export enum MessageTypes {
@@ -158,7 +159,13 @@ export class GrotCore {
     return this.client;
   }
 
-  private async deployCommands({ clientId, guildId }: { clientId: string, guildId: string }) {
+  private async deployCommands({
+    clientId,
+    guildId,
+  }: {
+    clientId: string;
+    guildId: string;
+  }) {
     const slashRegistry = this.actionRegistry.commands.slash;
     const slashCommands = Array.from(slashRegistry.values()).map((slash) =>
       slash.data.toJSON(),
@@ -169,15 +176,14 @@ export class GrotCore {
     );
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
-    const data = await rest.put(
-      Routes.applicationGuildCommands(
-        clientId,
-        guildId
-      ),
+    const data = (await rest.put(
+      Routes.applicationGuildCommands(clientId, guildId),
       { body: slashCommands },
-    ) as RESTPostAPIApplicationCommandsResult[];
+    )) as RESTPostAPIApplicationCommandsResult[];
 
-    console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+    console.log(
+      `Successfully reloaded ${data.length} application (/) commands.`,
+    );
   }
 
   private get registryMap(): {
@@ -243,7 +249,9 @@ export class GrotCore {
     const token = args?.token ?? process.env.DISCORD_TOKEN;
 
     if (!clientId || !guildId || !token) {
-      throw Error(`[ERROR] Missing environment variables (token, clientId, guildId). Please set them in .env or pass them as arguments`)
+      throw Error(
+        `[ERROR] Missing environment variables (token, clientId, guildId). Please set them in .env or pass them as arguments`,
+      );
     }
 
     this.deployCommands({ clientId, guildId });
