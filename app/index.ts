@@ -1,25 +1,6 @@
-import {
-  Client,
-  Collection,
-  GatewayIntentBits,
-  REST,
-  Routes,
-  Events,
-  RESTPostAPIApplicationCommandsResult,
-} from "discord.js";
-
-import { ESMFileMigrationProvider } from "./providers/ESMFileMigrationProvider";
-
-import SQLite from "better-sqlite3";
-import { Kysely, SqliteDialect } from "kysely";
-import { Migrator } from "kysely";
-import {
-  ActionTypes,
-  ActionTypeMap,
-  RunOptions,
-  Plugin,
-  ActionData
-} from "./types";
+import { Client, GatewayIntentBits, Events } from "discord.js";
+import { Kysely } from "kysely";
+import { ActionTypes, RunOptions, Plugin, ActionData} from "./types";
 import { ActionRegistry } from "./ActionRegistry";
 import { Database } from "./Database";
 import { deploySlashCommands } from "./scripts/DeployCommands";
