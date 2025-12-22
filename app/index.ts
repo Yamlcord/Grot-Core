@@ -112,9 +112,9 @@ export enum DatabaseType {
 
 export class GrotCore {
   private plugins: Array<Plugin>;
-  private client: Client;
+  private client: Client | undefined;
   private intents: Set<GatewayIntentBits>;
-  private database: Kysely<any>;
+  private database: Kysely<any> | undefined;
 
   private actionRegistry: ActionRegistry;
 
@@ -243,7 +243,7 @@ export class GrotCore {
   }
 
   public setupInteractionHandler() {
-    this.client.on(Events.InteractionCreate, async (interaction) => {
+    this.client?.on(Events.InteractionCreate, async (interaction) => {
       try {
         if (interaction.isButton()) {
           const [name] = interaction.customId.split("$");
@@ -271,21 +271,25 @@ export class GrotCore {
     });
   }
 
-  public run(options?: RunOptions) {
+  public async run(options?: RunOptions) {
     this.client = new Client({
       intents: Array.from(this.intents),
     });
 
     console.log("Initializing plugins");
     for (const plugin of this.plugins) {
-      const migrator = new Migrator({
-        db: this.database,
-        migrationTableName: `__migrations_${plugin.name}`,
-        provider: new ESMFileMigrationProvider(plugin.migrationsPath),
-      });
-      console.log(`Running migrations for plugin: ${plugin.name}`);
-      const migrationResult = await migrator.migrateUp();
-      console.log(migrationResult);
+
+      if(this.database) {
+        const migrator = new Migrator({
+          db: this.database,
+          migrationTableName: `__migrations_${plugin.name}`,
+          provider: new ESMFileMigrationProvider(plugin.migrationsPath),
+        });
+        const migrationResult = await migrator.migrateUp();
+        console.log(`Running migrations for plugin: ${plugin.name}`);
+        console.log(migrationResult);
+      }
+      
       console.log(`Initializing plugin: ${plugin.name}`);
       plugin.initialize(this);
     }
