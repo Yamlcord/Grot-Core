@@ -11,6 +11,9 @@ export class PluginManager {
     }
 
     registerPlugin(plugin: Plugin) {
+        if (this.plugins.some(p => p.name === plugin.name)) {
+            throw Error(`[ERROR] Plugin with name ${plugin.name} already registed.`)
+        }
         const requiredIntents = plugin.requiredIntents;
 
         for (const requiredIntent of requiredIntents || []) {
