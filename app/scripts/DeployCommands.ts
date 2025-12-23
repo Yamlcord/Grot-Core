@@ -1,10 +1,11 @@
 import { Collection, REST, RESTPostAPIApplicationCommandsResult, Routes } from "discord.js";
 import { SlashCommandActionData } from "../types";
 
-export async function deploySlashCommands({commands, clientId, guildId}: {
+export async function deploySlashCommands({commands, clientId, guildId, token}: {
     clientId: string;
     guildId: string;
     commands:  Collection<string, SlashCommandActionData>
+    token: string
   }) {
     const slashCommands = Array.from(commands.values()).map((slash) =>
       slash.data.toJSON(),
@@ -14,7 +15,7 @@ export async function deploySlashCommands({commands, clientId, guildId}: {
       `Started refreshing ${slashCommands.length} application (/) commands.`,
     );
 
-    const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
+    const rest = new REST().setToken(token);
     const data = (await rest.put(
       Routes.applicationGuildCommands(clientId, guildId),
       { body: slashCommands },

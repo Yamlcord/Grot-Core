@@ -1,28 +1,36 @@
-import { Client, GatewayIntentBits, Events } from "discord.js";
+import { Client, GatewayIntentBits, Events, IntentsBitField } from "discord.js";
 import { Kysely } from "kysely";
-import { ActionTypes, RunOptions, Plugin, ActionData, GrotOptions} from "./types";
+import { ActionTypes, RunOptions, Plugin, ActionData, GrotOptions, DatabaseType } from "./types";
 import { ActionRegistry } from "./ActionRegistry";
 import { Database } from "./Database";
 import { deploySlashCommands } from "./scripts/DeployCommands";
+import { PluginManager } from "./PluginManager";
 
 
 export class GrotCore {
-  private plugins: Array<Plugin>;
   private client: Client | undefined;
   private intents: Set<GatewayIntentBits>;
   private database: Database;
-
+  private pluginManager: PluginManager;
   private actionRegistry: ActionRegistry;
 
   public constructor(options?: GrotOptions) {
-    this.plugins = new Array<Plugin>();
     this.intents = new Set<GatewayIntentBits>(options?.intents);
     this.database = new Database();
+    this.pluginManager = new PluginManager(this);
     this.actionRegistry = new ActionRegistry();
+  }
+
+  public addIntent(intent: GatewayIntentBits) {
+    this.intents.add(intent)
   }
 
   public useDatabase(databaseType: DatabaseType = DatabaseType.SQLITE) {
     this.database.init(databaseType, process.env.DB_FILE_NAME || "default");
+  }
+
+  public getDatabaseManager() {
+    return this.database
   }
 
   public getDatabase<T>(): Kysely<T> {
@@ -34,24 +42,7 @@ export class GrotCore {
   }
 
   public registerPlugin(plugin: Plugin): Error | void | undefined {
-    plugin.requiredIntents?.forEach((intent) => {
-      this.intents.add(intent);
-    });
-
-    for (const dependency of plugin.dependencies || []) {
-      const dependencyPlugin = this.plugins.find(
-        (registeredPlugin) => registeredPlugin.name === dependency,
-      );
-
-      if (!dependencyPlugin) {
-        return new Error(
-          `${dependency} coudln't be found but it's required for ${plugin.name}`,
-        );
-      }
-    }
-
-    this.plugins.push(plugin);
-    console.log(`✅ Plugin loaded: ${plugin.name}`);
+    this.pluginManager.registerPlugin(plugin);
   }
 
   public getClient() {
@@ -92,29 +83,23 @@ export class GrotCore {
       intents: Array.from(this.intents),
     });
 
-    console.log("Initializing plugins");
-    for (const plugin of this.plugins) {
-      this.database.migrate(plugin.name, plugin.migrationsPath)
-
-      console.log(`Initializing plugin: ${plugin.name}`);
-      plugin.initialize(this);
-    }
-
     const clientId = options?.clientId ?? process.env.BOT_ID;
-    const guildId = options?.guildId ?? process.env.GUILD_ID;
-    const token = options?.token ?? process.env.DISCORD_TOKEN;
+    const guildId = options?.guildId ?? process.env.GUILD_ID;    const token = options?.token ?? process.env.DISCORD_TOKEN
+    
 
     if (!clientId || !guildId || !token) {
       throw Error(
         `[ERROR] Missing environment variables (token, clientId, guildId). Please set them in .env or pass them as arguments`,
       );
     }
+    console.log("Migrate plugins");
+    this.pluginManager.migratePlugins();
 
-    deploySlashCommands({
-      commands: this.actionRegistry.getSlashCommands(), 
-      clientId, 
-      guildId 
-    });
+    console.log("Initializing plugins");
+    this.pluginManager.initializePlugins();
+
+    console.log("Delpoy slash commands");
+    deploySlashCommands({commands: this.actionRegistry.getSlashCommands(), clientId, guildId, token});
 
     this.setupInteractionHandler();
 

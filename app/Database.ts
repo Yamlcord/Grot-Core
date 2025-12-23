@@ -1,10 +1,7 @@
 import { Kysely, Migrator, SqliteDialect } from "kysely";
 import SQLite from "better-sqlite3";
 import { ESMFileMigrationProvider } from "./providers/ESMFileMigrationProvider";
-
-export enum DatabaseType {
-  SQLITE = 1,
-}
+import { DatabaseType } from "./types";
 
 export class Database {
   private db?: Kysely<any>;
