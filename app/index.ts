@@ -72,6 +72,13 @@ export class GrotCore {
           action?.execute(interaction);
           return;
         }
+
+        if (interaction.isModalSubmit()) {
+          const [name] = interaction.customId.split("$");
+          const action = this.actionRegistry.get(ActionTypes.Modal, name);
+          action?.execute(interaction);
+          return;
+        }
       } catch (error) {
         console.error("There was an error", error);
       }
