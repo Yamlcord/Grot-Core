@@ -13,6 +13,7 @@ export class GrotCore {
   private database: Database;
   private pluginManager: PluginManager;
   private actionRegistry: ActionRegistry;
+  private started: boolean = false;
 
   public constructor(options?: GrotOptions) {
     this.intents = new Set<GatewayIntentBits>(options?.intents);
@@ -22,6 +23,9 @@ export class GrotCore {
   }
 
   public addIntent(intent: GatewayIntentBits) {
+    if (this.started) {
+      throw Error(`[ERROR] You cannot add intents after calling the run() method`)
+    }
     this.intents.add(intent)
   }
 
@@ -112,5 +116,6 @@ export class GrotCore {
     this.setupInteractionHandler();
 
     this.client.login(process.env.DISCORD_TOKEN);
+    this.started = true;
   }
 }
