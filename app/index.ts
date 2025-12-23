@@ -84,7 +84,8 @@ export class GrotCore {
     });
 
     const clientId = options?.clientId ?? process.env.BOT_ID;
-    const guildId = options?.guildId ?? process.env.GUILD_ID;    const token = options?.token ?? process.env.DISCORD_TOKEN
+    const guildId = options?.guildId ?? process.env.GUILD_ID;
+    const token = options?.token ?? process.env.DISCORD_TOKEN;
     
 
     if (!clientId || !guildId || !token) {
