@@ -1,11 +1,22 @@
 import { Client, GatewayIntentBits, Events, IntentsBitField } from "discord.js";
 import { Kysely } from "kysely";
-import { ActionTypes, RunOptions, Plugin, ActionData, GrotOptions, DatabaseType } from "./types";
+import {
+  ActionTypes,
+  RunOptions,
+  Plugin,
+  ActionData,
+  GrotOptions,
+  DatabaseType,
+  BaseService,
+  ScopedServiceProvider,
+  ServiceRegistryFromPlugins,
+} from "./types";
 import { ActionRegistry } from "./ActionRegistry";
 import { Database } from "./Database";
 import { deploySlashCommands } from "./scripts/DeployCommands";
 import { PluginManager } from "./PluginManager";
-
+import { ServiceManager } from "./ServiceManager";
+import { ServiceRegistry } from "core/services";
 
 export class GrotCore {
   private client: Client | undefined;
@@ -13,16 +24,18 @@ export class GrotCore {
   private database: Database;
   private pluginManager: PluginManager;
   private actionRegistry: ActionRegistry;
+  private serviceManager: ServiceManager;
 
   public constructor(options?: GrotOptions) {
     this.intents = new Set<GatewayIntentBits>(options?.intents);
     this.database = new Database();
     this.pluginManager = new PluginManager(this);
     this.actionRegistry = new ActionRegistry();
+    this.serviceManager = new ServiceManager();
   }
 
   public addIntent(intent: GatewayIntentBits) {
-    this.intents.add(intent)
+    this.intents.add(intent);
   }
 
   public useDatabase(databaseType: DatabaseType = DatabaseType.SQLITE) {
@@ -30,7 +43,25 @@ export class GrotCore {
   }
 
   public getDatabaseManager() {
-    return this.database
+    return this.database;
+  }
+
+  getScopedServiceProvider<TService extends BaseService | undefined>(
+    name: string,
+  ): ScopedServiceProvider<TService> {
+    return ((api?: TService) => {
+      if (api) {
+        this.serviceManager.provide(name, api);
+      }
+    }) as ScopedServiceProvider<TService>;
+  }
+
+  getService<K extends keyof ServiceRegistry>(
+    name: K,
+  ): ServiceRegistry[K] | undefined {
+    return this.serviceManager.getService(name as string) as
+      | ServiceRegistry[K]
+      | undefined;
   }
 
   public getDatabase<T>(): Kysely<T> {
@@ -38,7 +69,7 @@ export class GrotCore {
   }
 
   public registerInteraction<T extends ActionData>(data: T) {
-    this.actionRegistry.set(data)
+    this.actionRegistry.set(data);
   }
 
   public registerPlugin(plugin: Plugin): Error | void | undefined {
@@ -61,7 +92,10 @@ export class GrotCore {
 
         if (interaction.isChatInputCommand()) {
           const name = interaction.commandName;
-          const action = this.actionRegistry.get(ActionTypes.SlashCommand, name);
+          const action = this.actionRegistry.get(
+            ActionTypes.SlashCommand,
+            name,
+          );
           action?.execute(interaction);
           return;
         }
@@ -93,7 +127,6 @@ export class GrotCore {
     const clientId = options?.clientId ?? process.env.BOT_ID;
     const guildId = options?.guildId ?? process.env.GUILD_ID;
     const token = options?.token ?? process.env.DISCORD_TOKEN;
-    
 
     if (!clientId || !guildId || !token) {
       throw Error(
@@ -107,7 +140,12 @@ export class GrotCore {
     this.pluginManager.initializePlugins();
 
     console.log("Delpoy slash commands");
-    deploySlashCommands({commands: this.actionRegistry.getSlashCommands(), clientId, guildId, token});
+    deploySlashCommands({
+      commands: this.actionRegistry.getSlashCommands(),
+      clientId,
+      guildId,
+      token,
+    });
 
     this.setupInteractionHandler();
 

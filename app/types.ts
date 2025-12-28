@@ -1,5 +1,16 @@
-import { ButtonBuilder, ButtonInteraction, ChatInputCommandInteraction, Collection, GatewayIntentBits, Message, ModalSubmitInteraction, SlashCommandBuilder, StringSelectMenuInteraction } from "discord.js";
+import {
+  ButtonBuilder,
+  ButtonInteraction,
+  ChatInputCommandInteraction,
+  GatewayIntentBits,
+  Message,
+  ModalSubmitInteraction,
+  SlashCommandBuilder,
+  StringSelectMenuInteraction,
+} from "discord.js";
 import { GrotCore } from ".";
+
+export interface BaseService {}
 
 export enum MessageTypes {
   PlainText = 0,
@@ -7,12 +18,18 @@ export enum MessageTypes {
   ComponentsV2 = 2,
 }
 
-export interface Plugin {
-  name: string;
+export type ScopedServiceProvider<TService = undefined> =
+  TService extends BaseService ? (api: TService) => void : () => void;
+
+export interface Plugin<TService = undefined, TName extends string = string> {
+  name: TName;
   dependencies?: Array<string>;
   requiredIntents?: GatewayIntentBits[];
   migrationsPath: string;
-  initialize(core: GrotCore): void;
+  initialize(
+    core: GrotCore,
+    serviceProvider: ScopedServiceProvider<TService>,
+  ): void;
 }
 
 export enum ActionTypes {
@@ -29,13 +46,11 @@ export interface RunOptions {
   token: string;
 }
 
-
 export type SlashCommandActionData = {
   type: ActionTypes.SlashCommand;
   data: SlashCommandBuilder;
   execute: (interaction: ChatInputCommandInteraction) => Promise<void> | void;
 };
-
 
 export type GrotOptions = {
   intents: GatewayIntentBits[];
@@ -45,10 +60,9 @@ export enum DatabaseType {
   SQLITE = 1,
 }
 
-
 export type PrefixCommandActionData = {
   type: ActionTypes.PrefixCommand;
-  name: string,
+  name: string;
   execute: (message: Message, ...params: any[]) => Promise<void> | void;
 };
 
@@ -61,13 +75,13 @@ export type ButtonActionData = {
 
 export type SelectMenuActionData = {
   type: ActionTypes.SelectMenu;
-  name: string,
+  name: string;
   execute: (interaction: StringSelectMenuInteraction) => Promise<void> | void;
 };
 
 export type ModalActionData = {
   type: ActionTypes.Modal;
-  name: string,
+  name: string;
   execute: (interaction: ModalSubmitInteraction) => Promise<void> | void;
 };
 
@@ -78,7 +92,6 @@ export type ActionTypeMap = {
   [ActionTypes.SelectMenu]: SelectMenuActionData;
   [ActionTypes.Modal]: ModalActionData;
 };
-
 
 export type ActionData =
   | SlashCommandActionData
